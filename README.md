@@ -20,6 +20,18 @@ doT.js is fast, small and has no dependencies.
 
 http://olado.github.com/doT (todo: update docs with new features added in version 1.0.0)
 
+## New in version 1.2.1 (by author spmbt)
+
+* Not mandatory iterate and iterHash variables (default value are c.varname, =='it').
+* Addition for minification in Google Closure Compiler Advanced mode.
+* Page for tests in project *(test/index.html)* and online: https://jsfiddle.net/spmbt/v3yvpbsu/16/
+* In the test page:
+    * Comparison of 2 versions (original 1.1.1 vs clone 1.2.1);
+    * Handling of errors;
+    * Show compiled functions;
+    * benchmark with cumulative calculation of average;
+    * 3 or more examples in dropdown list of examples with save of modifications in JS (no localStorage or external);
+
 ## New in version 1.1.0 (by author spmbt)
 
 ###doT.js iterations by objects with conditions:

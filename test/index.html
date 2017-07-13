@@ -1,0 +1,251 @@
+﻿<!DOCTYPE html>
+<html>
+<head lang="ru">
+    <meta charset="utf-8">
+    <title>Testing of the doT12 template engine</title>
+    <script src="../doTOrig111.js"></script>
+    <script src="../doT.js"></script>
+    <style>
+        html,body{height: 100%}
+        .tmpl{}
+        .tmpl textarea, .dat textarea{width: 100%}
+        .tmpl .titl, .dat  .titl{
+            text-align: right;
+            height: .2em;
+            margin: -.1em 0;
+        }
+        .tmpl .titl span, .dat  .titl span{position: relative; top: -.5em; color: #777}
+
+        .res.left, .res.right{
+            position: relative;
+            width: 49.9%;
+            min-height: 80%;
+            margin:2px 0 24px;
+            border:1px solid #888;
+        }
+        .res.right{
+            float: right;
+            background-color:#f3f3f3;
+        }
+        .res.left:before, .res.right.from2nd:before, .res.right.from2nd:after{
+            content: attr(data-version);
+            position: absolute;
+            top: -.1em;
+            right: 0;
+            padding: 0 2px 0 3px;
+            font-size: 13px;
+            border: 1px solid rgba(208, 208, 208, 0.6);
+            border-radius: 2px;
+            background-color: rgba(238, 238, 238, 0.6);
+        }
+        .res.right.from2nd:after{
+            content:'from second script';
+            top: -1.3em;
+            padding: 0 12px 0 18px;
+        }
+
+        .xmps{
+            position: absolute;
+            top: 0;
+            right: 120px;
+            padding: 0 2px 0 3px;
+            border: 1px solid rgba(208, 208, 208, 0.6);
+            border-radius: 2px;
+            background-color: rgba(238, 242, 255, 0.6);
+        }
+        .xmps .title{
+            text-align: right;
+        }
+        .xmps .xmp, .xmps .xmp .tmpl, .xmps .xmp .dat{
+            display: none;
+        }
+        .xmps:hover .xmp{
+            display: block;
+        }
+        .xmps .xmp.current{
+            background-color: rgba(255, 238, 233, 0.85);
+        }
+        .xmps .xmp:not(.current):hover{
+            background-color: rgba(223, 232, 248, 0.9);
+            cursor: pointer;
+        }
+        .warn{background-color: #faf5e3;}
+    </style>
+</head>
+<body>
+    <div class="tmpl">
+        <div class="titl"><span>Template</span></div>
+<textarea cols=120 rows=24>
+<div>
+	{{=it.as}}</div>
+<div>{{=12+3400}}</div>
+<div>
+    {{=it.bs}}
+</div>
+<div>{{=12+6800}}</div>
+</textarea>
+    </div>
+    
+    <div class="dat">
+        <div class="titl"><span>Data</span></div>
+<textarea cols=120 rows=10>
+{as:12, bs:34, cs: 567}
+</textarea>
+    </div>
+
+    <div class="doing">
+        <button onclick="window.doing()">Recalc</button>
+        <button onclick="window.compile()" style="margin-left: 60px">Show function</button>
+        <button id="bench" onclick="window.bench()" style="margin-left: 40px">Bench 1e3</button>
+    </div>
+    
+    <div class="res right from2nd" data-version="v. 1.2.1"></div>
+    <div class="res left" data-version="v. 1.1.1"></div>
+
+    <div class="xmps">
+        <div class="title" title="Save current example by click and show another one">
+            Examples
+        </div>
+        <div class="xmp current" data-xmpkey="0">
+            Example 1
+<textarea class="tmpl"> <!-- this current content is placed in body >.tmpl -->
+xmpl1
+</textarea>
+<textarea class="dat">
+dat1
+</textarea>
+        </div>
+        <div class="xmp" data-xmpkey="1">
+            Example 2
+<textarea class="tmpl">
+{{~it:v:i}}
+<b>[{{=i}}] : {{=v.name}}</b>
+{{~}}
+</textarea>
+<textarea class="dat">
+[
+  { "name": "asfaf" },
+  { "name": "ertdfg" },
+  { "name": "jghj" },
+  { "noName": "tyrt" },
+  { "name": "werwet" }
+]
+</textarea>
+        </div>
+        <div class="xmp" data-xmpkey="2">
+            Example 3
+<textarea class="tmpl">
+{{@:v:i}}
+<b>[{{=i}}] : {{=v.name}}</b>
+{{@}}
+</textarea>
+<textarea class="dat">
+[
+  { "name": "Moe" },
+  { "name": "Larry" },
+  { "name": "Curly" }
+]
+</textarea>
+        </div>
+    </div>
+
+    <script>
+        var tt0, tt1, tt2, tt3, checks
+            ,$q = function(q, x){return (x||document).querySelector(q)}
+            ,$tmpl = $q('.tmpl textarea')
+            ,$dat = $q('.dat textarea')
+            ,tmpl, dat, xmpName = ''
+            ,leftPan = $q('.res.left')
+            ,rightPan = $q('.res.right.from2nd')
+            ,$xmps = $q('.xmps')
+            ,$xmpCurr = $q('.xmps .xmp.current') //selected example
+            ,decodeHTML =function(s){return( (s+'').replace(/<(?!br\s*\/?>)/g,'&lt;')
+                    .replace(/\n/g,'<br _n>')
+                    .replace(/  /g,'&nbsp; ')
+                .replace(/\t/g,'&nbsp; &nbsp; ') )}
+            ,benchCycles ='1e3' //base number of cycles in window.bench()
+            ,nBench =eval(benchCycles)
+            ,nBenchRun = nBench *100;
+        leftPan.setAttribute('data-version','v.'+ doT.version);
+        rightPan.setAttribute('data-version','v.'+ doTmin.version);
+        $q('#bench').innerHTML ='Bench '+ benchCycles;
+        (window.doing = function(woConsole){
+            tmpl = $tmpl.value; //template
+            dat = $dat.value;
+            if(/[[{]/g.test(dat.replace(/^\s+/,'')[0])) //data for template: JS structure or string
+                eval('dat = '+ dat);
+            !woConsole && console.log(dat);
+            try{
+                leftPan.innerHTML = decodeHTML(doT.template(tmpl)(dat));
+            }catch(er){crashed(doT, er, xmpName)}
+            try{
+                rightPan.innerHTML = decodeHTML(doTmin.template(tmpl)(dat));
+            }catch(er){crashed(doTmin, er, xmpName)}
+            tt0=0, tt1=0, tt2=0, tt3=0, checks=0;
+        })();
+        $xmps.addEventListener('click', function(ev){ //switch example
+            var $t = ev.target;
+            if($t && $t.classList.contains('xmp') && !$t.classList.contains('current')){
+                console.log('$t: ',$t);
+                var indx = $t.getAttribute('data-xmpkey')
+                    ,indxCurr = $xmpCurr.getAttribute('data-xmpkey') //index (number from 0) of current xmp
+                    ,$tmplCurr = $q('.xmp[data-xmpkey="'+ indxCurr +'"] .tmpl', $xmps)
+                    ,$datCurr = $q('.xmp[data-xmpkey="'+ indxCurr +'"] .dat', $xmps);
+                $tmplCurr.value = $tmpl.value;
+                $datCurr.value = $dat.value; //current template and data are saved
+                $tmpl.value = $q('.xmp[data-xmpkey="'+ indx +'"] .tmpl', $xmps).value;
+                $dat.value = $q('.xmp[data-xmpkey="'+ indx +'"] .dat', $xmps).value; //data from selected example
+                $xmpCurr.classList.remove('current');
+                $t.classList.add('current');
+                $xmpCurr = $t; //new selected example
+                tmpl = $tmpl.value;
+                dat = $dat.value;
+                /[[{]/.test(dat.replace(/^\s+/,'')[0]) ? eval('dat = '+ dat) : 0; //new data for template
+                xmpName = $q('.xmp[data-xmpkey="'+ indx +'"]', $xmps).innerText;
+            }
+        },!1);
+        window.crashed = function(engine, er, xmpName){
+            var D = new Date()
+                ,dd = (D.getHours()>9?'':'0')+ D.getHours() +':'+ (D.getMinutes()>9?'':0)
+                    + D.getMinutes() +':'+ (D.getSeconds()>9?'':0)+ D.getSeconds()
+                ,pan = engine === doT ? leftPan : rightPan;
+            console.warn((engine === doT ?'Left: ':'Right: ') + dd +' '+ er);
+            pan.innerHTML = dd +' '+ xmpName +'<div class="warn">'+ er +'</div>\n'+ pan.innerHTML;
+        };
+        window.compile = function(){
+            doing('woConsole');
+            try{leftPan.innerHTML = decodeHTML((doT.template(tmpl)+'').replace(/^function anonymous\(it\n(?:\/\*``\*\/)?\) \{\n/,'it=>{'))
+                +'----------------<br>\n'+ decodeHTML(leftPan.innerHTML);
+            }catch(er){crashed(doT, er, xmpName)}
+            try{rightPan.innerHTML = decodeHTML((doTmin.template(tmpl)+'').replace(/^function anonymous\(it\n(?:\/\*``\*\/)?\) \{\n/,'it=>{'))
+                +'----------------<br>\n' + decodeHTML(rightPan.innerHTML);
+            }catch(er){crashed(doTmin, er, xmpName)}
+        };
+        window.bench = function(){
+            var perf = typeof performance && performance, i, tt, t1, t2, t3, tmpl2, tmpl3;
+            try{for(i=0, tt = perf.now() || +new Date(); i < nBench; i++)
+                doT.template(tmpl)(dat)+Math.random();
+            }catch(er){crashed(doT, er, xmpName)}
+            tt = (perf.now() || +new Date()) - tt;
+            try{for(i=0, t1 = perf.now() || +new Date(); i < nBench; i++)
+                doTmin.template(tmpl)(dat)+Math.random();
+            }catch(er){crashed(doTmin, er, xmpName)}
+            t1 = (perf.now() || +new Date()) - t1;
+            try{for(i=0, t2 = perf.now() || +new Date(), tmpl2 = doT.template(tmpl); i < nBenchRun; i++)
+                tmpl2(dat)+Math.random();
+            }catch(er){crashed(doT, er, xmpName)}
+            t2 = (perf.now() || +new Date()) - t2;
+            try{for(i=0, t3 = perf.now() || +new Date(), tmpl3 = doTmin.template(tmpl); i < nBenchRun; i++)
+                tmpl3(dat)+Math.random();
+            }catch(er){crashed(doTmin, er, xmpName)}
+            t3 = (perf.now() || +new Date()) - t3;
+            tt0 += tt, tt1 += t1, tt2 += t2, tt3 += t3, checks++;
+
+            leftPan.innerHTML += '<br>&nbsp;==Comp'+checks+ benchCycles.substr(1) +': '+ (tt0/checks).toFixed(2)
+                +'ms; &nbsp;Run'+checks+'e5: '+ (tt2/checks).toFixed(2) +'ms';
+            rightPan.innerHTML += '<br>&nbsp;==Comp'+checks+ benchCycles.substr(1) +': '+ (tt1/checks).toFixed(2)
+                +'ms; &nbsp;Run'+checks+'e5: '+ (tt3/checks).toFixed(2) +' ms';
+        };
+        
+    </script>
+</body></html>
