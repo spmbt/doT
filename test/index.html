@@ -18,10 +18,12 @@
 
         .res.left, .res.right{
             position: relative;
-            width: 49.9%;
+            width: 49.7%;
             min-height: 80%;
             margin:2px 0 24px;
             border:1px solid #888;
+            word-wrap: break-word;
+            /*background-color:#f7f3f2;*/
         }
         .res.right{
             float: right;
@@ -40,8 +42,10 @@
         }
         .res.right.from2nd:after{
             content:'from second script';
-            top: -1.3em;
+            top: -1.1em;
             padding: 0 12px 0 18px;
+            font-size: 13px;
+            border-radius: 5px;
         }
 
         .xmps{
@@ -56,8 +60,10 @@
         .xmps .title{
             text-align: right;
         }
+        .res.left:hover:before, .res.right.from2nd:hover:before,
         .xmps .xmp, .xmps .xmp .tmpl, .xmps .xmp .dat{
             display: none;
+            padding: 1px 3px;
         }
         .xmps:hover .xmp{
             display: block;
@@ -70,6 +76,7 @@
             cursor: pointer;
         }
         .warn{background-color: #faf5e3;}
+        .autocalc{line-height: 30px; vertical-align: middle}
     </style>
 </head>
 <body>
@@ -80,7 +87,7 @@
 	{{=it.as}}</div>
 <div>{{=12+3400}}</div>
 <div>
-    {{=it.bs}}
+    {{=it.bs +1}}
 </div>
 <div>{{=12+6800}}</div>
 </textarea>
@@ -95,7 +102,8 @@
 
     <div class="doing">
         <button onclick="window.doing()">Recalc</button>
-        <button onclick="window.compile()" style="margin-left: 60px">Show function</button>
+        <input type="checkbox" class="autocalc" title="calculate automatically after change"/>
+        <button onclick="window.compile()" style="margin-left: 39px">Show function</button>
         <button id="bench" onclick="window.bench()" style="margin-left: 40px">Bench 1e3</button>
     </div>
     
@@ -107,7 +115,7 @@
             Examples
         </div>
         <div class="xmp current" data-xmpkey="0">
-            Example 1
+            Expressions
 <textarea class="tmpl"> <!-- this current content is placed in body >.tmpl -->
 xmpl1
 </textarea>
@@ -115,11 +123,11 @@ xmpl1
 dat1
 </textarea>
         </div>
+
         <div class="xmp" data-xmpkey="1">
-            Example 2
+            Array
 <textarea class="tmpl">
-{{~it:v:i}}
-<b>[{{=i}}] : {{=v.name}}</b>
+{{~it:v:i}}<b>[{{=i}}]: {{=v.name}}</b>
 {{~}}
 </textarea>
 <textarea class="dat">
@@ -132,11 +140,11 @@ dat1
 ]
 </textarea>
         </div>
+
         <div class="xmp" data-xmpkey="2">
-            Example 3
+            Structure (new)
 <textarea class="tmpl">
-{{@:v:i}}
-<b>[{{=i}}] : {{=v.name}}</b>
+{{@:v:i}}<b>[{{=i}}] : {{=v.name}}</b>
 {{@}}
 </textarea>
 <textarea class="dat">
@@ -147,6 +155,24 @@ dat1
 ]
 </textarea>
         </div>
+
+        <div class="xmp" data-xmpkey="3">
+            Escaped HTMLs
+<textarea class="tmpl">
+{{@:v:i}}<b>[{{=i}}] : {{! '<b>1</b>'+v.name}} or {{=v.name}} </b>
+{{@}}
+</textarea>
+<textarea class="dat">
+[
+  { "name": "12<span>< 34</span>"},
+  { "name": "Larry<br>Best"},
+  { "name": "Curly&nbsp;Pitt"},
+  { "name": "Curly&nbsp;Pitt2"},
+  { "name": "Curly&nbsp;Pitt3<br>91"},
+  { "name": "Curly&nbsp;Pitt4<br>"}
+]
+</textarea>
+        </div>
     </div>
 
     <script>
@@ -154,12 +180,12 @@ dat1
             ,$q = function(q, x){return (x||document).querySelector(q)}
             ,$tmpl = $q('.tmpl textarea')
             ,$dat = $q('.dat textarea')
-            ,tmpl, dat, xmpName = ''
+            ,tmpl, dat, xmpName = '', engi
             ,leftPan = $q('.res.left')
             ,rightPan = $q('.res.right.from2nd')
             ,$xmps = $q('.xmps')
             ,$xmpCurr = $q('.xmps .xmp.current') //selected example
-            ,decodeHTML =function(s){return( (s+'').replace(/<(?!br\s*\/?>)/g,'&lt;')
+            ,decodeHTML =function(s){return( (s+'').replace(/<(?!br\s*.+?\s*\/?>)/g,'&lt;')
                     .replace(/\n/g,'<br _n>')
                     .replace(/  /g,'&nbsp; ')
                 .replace(/\t/g,'&nbsp; &nbsp; ') )}
@@ -175,13 +201,17 @@ dat1
             if(/[[{]/g.test(dat.replace(/^\s+/,'')[0])) //data for template: JS structure or string
                 eval('dat = '+ dat);
             !woConsole && console.log(dat);
+            engi = doT;
             try{
-                leftPan.innerHTML = decodeHTML(doT.template(tmpl)(dat));
-            }catch(er){crashed(doT, er, xmpName)}
+                (engi === doT ? leftPan : rightPan).innerHTML = decodeHTML(engi.template(tmpl)(dat));
+            }catch(er){crashed(engi, er, xmpName)}
+            engi = doTmin;
             try{
-                rightPan.innerHTML = decodeHTML(doTmin.template(tmpl)(dat));
-            }catch(er){crashed(doTmin, er, xmpName)}
+                (engi === doT ? leftPan : rightPan).innerHTML = decodeHTML(engi.template(tmpl)(dat));
+            }catch(er){crashed(engi, er, xmpName)}
             tt0=0, tt1=0, tt2=0, tt3=0, checks=0;
+            clearTimeout(vv);
+            vv = setTimeout(checkDiff,799);
         })();
         $xmps.addEventListener('click', function(ev){ //switch example
             var $t = ev.target;
@@ -222,22 +252,22 @@ dat1
             }catch(er){crashed(doTmin, er, xmpName)}
         };
         window.bench = function(){
-            var perf = typeof performance && performance, i, tt, t1, t2, t3, tmpl2, tmpl3;
-            try{for(i=0, tt = perf.now() || +new Date(); i < nBench; i++)
-                doT.template(tmpl)(dat)+Math.random();
-            }catch(er){crashed(doT, er, xmpName)}
+            var perf = typeof performance !='undefined'&& performance, i, tt, t1, t2, t3, tmpl2, tmpl3;
+            try{for(i=0, tt = perf.now() || +new Date(), engi = doT; i < nBench; i++)
+                engi.template(tmpl)(dat)+Math.random();
+            }catch(er){crashed(engi, er, xmpName)}
             tt = (perf.now() || +new Date()) - tt;
-            try{for(i=0, t1 = perf.now() || +new Date(); i < nBench; i++)
-                doTmin.template(tmpl)(dat)+Math.random();
-            }catch(er){crashed(doTmin, er, xmpName)}
+            try{for(i=0, t1 = perf.now() || +new Date(), engi = doTmin; i < nBench; i++)
+                engi.template(tmpl)(dat)+Math.random();
+            }catch(er){crashed(engi, er, xmpName)}
             t1 = (perf.now() || +new Date()) - t1;
-            try{for(i=0, t2 = perf.now() || +new Date(), tmpl2 = doT.template(tmpl); i < nBenchRun; i++)
+            try{for(i=0, t2 = perf.now() || +new Date(), engi = doT, tmpl2 = engi.template(tmpl); i < nBenchRun; i++)
                 tmpl2(dat)+Math.random();
-            }catch(er){crashed(doT, er, xmpName)}
+            }catch(er){crashed(engi, er, xmpName)}
             t2 = (perf.now() || +new Date()) - t2;
-            try{for(i=0, t3 = perf.now() || +new Date(), tmpl3 = doTmin.template(tmpl); i < nBenchRun; i++)
+            try{for(i=0, t3 = perf.now() || +new Date(), engi = doTmin, tmpl3 = engi.template(tmpl); i < nBenchRun; i++)
                 tmpl3(dat)+Math.random();
-            }catch(er){crashed(doTmin, er, xmpName)}
+            }catch(er){crashed(engi, er, xmpName)}
             t3 = (perf.now() || +new Date()) - t3;
             tt0 += tt, tt1 += t1, tt2 += t2, tt3 += t3, checks++;
 
@@ -246,6 +276,26 @@ dat1
             rightPan.innerHTML += '<br>&nbsp;==Comp'+checks+ benchCycles.substr(1) +': '+ (tt1/checks).toFixed(2)
                 +'ms; &nbsp;Run'+checks+'e5: '+ (tt3/checks).toFixed(2) +' ms';
         };
-        
+        var $autocalc = $q('.autocalc') // set check autocalc after 0.8-1.6 sec of change textareas
+            ,taPrev ={}, taPrev2 ={}, checkDiff
+        ,vv = setTimeout(checkDiff = function(){ //check changes of tmpl and dat areas if autocalc
+            try{
+            var hasChanges
+                ,ta = {tmpl: $tmpl.value, dat: $dat.value};
+            if($autocalc.checked){
+                for(var i in ta)
+                    if(ta[i] != taPrev2[i] && ta[i] != taPrev[i]){
+                        hasChanges = 1;
+                        break;}
+                if(hasChanges)
+                    doing('woConsole');
+                for(var i in ta){
+                    taPrev2[i] = taPrev[i];
+                    taPrev[i] = ta[i];}
+            }else
+                clearTimeout(vv);
+            }catch(er){crashed(engi, er, xmpName)}
+            vv = setTimeout(checkDiff,799);
+        },799);
     </script>
 </body></html>

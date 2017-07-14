@@ -1,6 +1,6 @@
-// doT.js
-// 2011, Laura Doktorova, https://github.com/olado/doT
-// 2013-2017, modified by spmbt0 (iterHash iterator in objects with conditions)
+// doT12.js
+// 2011-2014, Laura Doktorova
+// 2013-2017, modified by spmbt0 (iterHash iterator in objects with conditions) https://github.com/spmbt/doT
 // Licensed under the MIT license.
 
 (function(){
@@ -8,23 +8,23 @@
 	/* global define: false, module: false */
 	/*jshint unused:true, eqnull:true, evil:true, laxcomma:true, laxbreak:true */
 var doT ={version:'1.2.1'
-        ,templateSettings: {
-            globalName:'doTmin',
-            valEncEval:  /\{\{([=!]?)([\s\S]+?(\}?)+)\}\}/g, //{{=.+}} | {{!.+}} | {{.+}}
-            use:         /\{\{#([\s\S]+?)\}\}/g, //{{#.+}}
-            useParams:   /(^|[^\w$])def(?:\.|\[[\'\"])([\w$\.]+)(?:[\'\"]\])?\s*\:\s*([\w$\.]+|\"[^\"]+\"|\'[^\']+\'|\{[^\}]+\})/g,
-            define:      /\{\{##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\}\}/g,
-            defineParams:/^\s*([\w$]+):([\s\S]+)/, // .+:.+
-            conditional: /\{\{\?(\?)?\s*([\s\S]*?)\s*\}\}/g, //{{? .* }}
-            iterate:     /\{\{~\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*)?\}\})/g, //{{~.*:.*:.*}}
-            iterHash:    /\{\{@\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*\:?((?:[^}]|\}(?!\}))*)\s*)?\}\})/g, //{{@.*:.*:.*:.*}}
-            varname:	'it',
-            strip:		!true, //remove spaces, tabs, newlines
-            append:		true //or split of concatenation - style of function
-            ,useGlobalEncode: true
-            ,selfcontained: false
-            ,doNotSkipEncoded: false
-        }
+		,templateSettings: {
+			globalName:'doTmin',
+			valEncEval:  /\{\{([=!]?)([\s\S]+?(\}?)+)\}\}/g, //{{=.+}} | {{!.+}} | {{.+}}
+			use:         /\{\{#([\s\S]+?)\}\}/g, //{{#.+}}
+			useParams:   /(^|[^\w$])def(?:\.|\[[\'\"])([\w$\.]+)(?:[\'\"]\])?\s*\:\s*([\w$\.]+|\"[^\"]+\"|\'[^\']+\'|\{[^\}]+\})/g,
+			define:   /\{\{##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\}\}/g,
+			defineParams:/^\s*([\w$]+):([\s\S]+)/, // .+:.+
+			conditional: /\{\{\?(\?)?\s*([\s\S]*?)\s*\}\}/g, //{{? .* }}
+			iterate:     /\{\{~\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*)?\}\})/g, //{{~.*:.*:.*}}
+			iterHash:    /\{\{@\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*\:?((?:[^}]|\}(?!\}))*)\s*)?\}\})/g, //{{@.*:.*:.*:.*}}
+			varname:    'it',
+			strip:      !true, //remove spaces, tabs, newlines
+			append:     true //or split of concatenation - style of function
+			,useGlobalEncode: true
+			,selfcontained: false
+			,doNotSkipEncoded: false
+		}
 }, /* jshint ignore:start */ _globals = (function(){ return this || (0,eval)('this'); }()) /* jshint ignore:end */
 ,dS = doT.templateSettings;
 
@@ -33,10 +33,10 @@ if(typeof module !='undefined'&& module.exports)
 else if(typeof define =='function' && define.amd)
 	define(function(){return doT;});
 else
-    _globals[dS.globalName] = doT;
+	_globals[dS.globalName] = doT;
 
 var d2={
-    compile: function(tmpl, def){ //for express
+	compile: function(tmpl, def){ //for express
 		return doT.template(tmpl, null, def);
 	},
 	template: function(tmpl, c, def){
@@ -56,7 +56,7 @@ var d2={
 				})
 				.replace(c.iterate || skip, function(m, iterate, vname, iname){ // ~
 					if(!(iterate || vname || iname)) return "';} } out+='";
-                    iterate = iterate || c.varname;
+					iterate = iterate || c.varname;
 					sid++; indv = iname ||'i'+ sid; iterate = unescape(iterate);
 					return "';var arr"+ sid +'='+ iterate +';if(arr'+ sid +'){var '+ (vname = vname ||'arrI'+ sid) +','
 						+indv +'=-1,l'+ sid +'=arr'+ sid +'.length-1;while('+ indv +'<l'+ sid +'){'+ vname +'=arr'+ sid
@@ -74,9 +74,8 @@ var d2={
 					needhtmlencode = op =='!';
 					return cse['('+ op] + unescape(code) + cse[')'+ op];
 				})+ "';return out;")
-			.replace(/([\n\t\r])/g,'\\$1')
-			.replace(/\+''|(\s|;|\}|^|\{)(out\+='';|(out\+=)''\+)/g,'$1$3');
-            //.replace(/(\s|;|\}|^|\{)out\+=''\+/g,'$1out+='); TODO в 1.1.1 это отменили, что входит выше
+			.replace(/\n/g,'\\n').replace(/\t/g,'\\t').replace(/\r/g,'\\r')
+			.replace(/(\s|;|\}|^|\{)out\+='';/g,'$1');
 		try{
 			return new Function(c.varname, str = (needhtmlencode ? doT.encHtmlStr :'')+ str );
 		}catch(er){

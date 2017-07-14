@@ -20,6 +20,11 @@ doT.js is fast, small and has no dependencies.
 
 http://olado.github.com/doT (todo: update docs with new features added in version 1.0.0)
 
+#### New in version 1.2.2 (by Spmbt)
+
+* In the test page: checked autoupdate by changes of template or data;
+* fix "strip:false" mode
+
 ## New in version 1.2.1 (by author spmbt)
 
 * Not mandatory iterate and iterHash variables (default value are c.varname, =='it').
