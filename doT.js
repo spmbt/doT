@@ -9,11 +9,12 @@
 	/*jshint unused:true, eqnull:true, evil:true, laxcomma:true, laxbreak:true */
 var doT ={version:'1.2.1'
 		,templateSettings: {
-			globalName:'doTmin',
+			globalName:'doT',
 			valEncEval:  /\{\{([=!]?)([\s\S]+?(\}?)+)\}\}/g, //{{=.+}} | {{!.+}} | {{.+}}
 			use:         /\{\{#([\s\S]+?)\}\}/g, //{{#.+}}
 			useParams:   /(^|[^\w$])def(?:\.|\[[\'\"])([\w$\.]+)(?:[\'\"]\])?\s*\:\s*([\w$\.]+|\"[^\"]+\"|\'[^\']+\'|\{[^\}]+\})/g,
-			define:   /\{\{##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\}\}/g,
+			define:      /\{\{##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\}\}/g,
+			useDef:      /\{\{##?([\s\S]+?)\}\}/g, //-1% of time than c.use ||c.define
 			defineParams:/^\s*([\w$]+):([\s\S]+)/, // .+:.+
 			conditional: /\{\{\?(\?)?\s*([\s\S]*?)\s*\}\}/g, //{{? .* }}
 			iterate:     /\{\{([~@])\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*\:?((?:[^}]|\}(?!\}))*)\s*)?\}\})/g, //{{~.*:.*:.*:.*}}
@@ -42,35 +43,35 @@ var encHt = '_'+dS.globalName + doT.version.replace(/\./g,'')
 		c = c || dS;
 		var sid =0
 			,toEncHtm
-			,str = (c.use || c.define ? resolveDefs(c, tmpl, def ||{}) : tmpl) ||''
+			,str = (c.useDef ? resolveDefs(c, tmpl, def ||{}) : tmpl) ||'' //+5% of time
 			,skip = /$^/;
-		str = ("var out='" + (c.strip ? str.replace(/(^|\r|\n)\t* +| +\t*(\r|\n|$)/g,' ')
-					.replace(/\r|\n|\t|\/\*[\s\S]*?\*\//g,''): str)
-				.replace(/'|\\/g,'\\$&') //escape "'" and "\"
-				.replace(c.conditional || skip, function(m, elsecase, code){ // {{?expr}}if-text{{?}} | {{?expr}}if-text1{{??}}else-text2{{?}}
-					return elsecase ?
-						(code ? "'}else if("+ unescape(code) +"){out+='" : "'}else{out+='") :
-						(code ? "';if("+ unescape(code) +"){out+='" : "'}out+='");
-				})
-				.replace(c.iterate || skip, function(m, op, iterate, vname, iname, cond){ // ~ m, array, value, index, [expr]
-					if(!(iterate || vname || iname)) return "'} } out+='";
-					sid++; iname = iname ||'i'+ sid; iterate = unescape(iterate || c.varname);
-					var v1 = 'var '+ (vname = vname ||'arrI'+ sid)
-                        ,iph='=arr'+ sid +'['+ iname +'];if('+ (cond ? unescape(cond):1) +'){';
-					return "';var arr"+ sid +'='+ iterate +';'
-						+(op=='~'?
-							v1 +',' +iname +'=-1,l'+ sid +'=arr'+ sid
-                            +'.length-1;while('+ iname +'++<l'+ sid +'){'+vname +iph
-						:
-							'for(var '+ iname+' in arr'+ sid +'){'+ v1 +iph
-						)+"out+='";
-				})
-				.replace(c.valEncEval || skip, function(m, op, code){ // =|! expr -- interpolate or encode
-					toEncHtm = toEncHtm || op =='!';
-					return cse['('+ op] + unescape(code) + cse[')'+ op];
-				})+ "';return out;")
-			.replace(/\n/g,'\\n').replace(/\t/g,'\\t').replace(/\r/g,'\\r')
-			.replace(/(\s|;|\}|^|\{)out\+='';/g,'$1');
+		str = ("var out='" + (c.strip ? str.replace(/(^|\r|\n)\t* +| +\t*(\r|\n|$)/g,' ') //+2% of time
+				.replace(/\r|\n|\t|\/\*[\s\S]*?\*\//g,''): str)
+			.replace(/'|\\/g,'\\$&') //escape "'" and "\"
+			.replace(c.conditional || skip, function(m, els, code){ // {{?expr}}ifTxt [{{??[expr]}}[if-]elseTxt] {{?}}
+				return els ?
+					(code ? "'}else if("+ unescape(code) +"){out+='" : "'}else{out+='") :
+					(code ? "';if("+ unescape(code) +"){out+='" : "'}out+='");
+			})
+			.replace(c.iterate || skip, function(m, op, iterate, vname, iname, cond){ //~|@ m, arr|{}, val,indx,[expr]
+				if(!(iterate || vname || iname)) return "'} } out+='";
+				sid++; iname = iname ||'i'+ sid; iterate = unescape(iterate || c.varname);
+				var v1 = 'var '+ (vname = vname ||'arrI'+ sid)
+					,iph='=arr'+ sid +'['+ iname +'];if('+ (cond ? unescape(cond):1) +'){';
+				return "';var arr"+ sid +'='+ iterate +';'
+					+(op=='~'?
+						v1 +',' +iname +'=-1,l'+ sid +'=arr'+ sid
+						+'.length-1;while('+ iname +'++<l'+ sid +'){'+vname +iph
+					:
+						'for(var '+ iname+' in arr'+ sid +'){'+ v1 +iph
+					)+"out+='";
+			})
+			.replace(c.valEncEval || skip, function(m, op, code){ // =|! expr -- interpolate or encode
+				toEncHtm = toEncHtm || op =='!';
+				return cse['('+ op] + unescape(code) + cse[')'+ op];
+			})+ "';return out;")
+		.replace(/\n/g,'\\n').replace(/\t/g,'\\t').replace(/\r/g,'\\r')
+		.replace(/(\s|;|\}|^|\{)out\+='';/g,'$1');
 		try{
 			return new Function(c.varname, str = (toEncHtm ? doT.encHtm(!dS.selfcontained) :'')+ str);
 		}catch(er){

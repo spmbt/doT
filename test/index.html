@@ -3,8 +3,10 @@
 <head lang="ru">
     <meta charset="utf-8">
     <title>Testing of the doT12 template engine</title>
+    <!script src="../doT.js"><!/script>
     <script src="../doTOrig111.js"></script>
-    <script src="../doT.js"></script>
+    <!script src="../doT.js"><!/script>
+    <script src="../doT.min.js"></script>
     <style>
         html,body{height: 100%}
         .tmpl{}
@@ -102,7 +104,7 @@
 
     <div class="doing">
         <button onclick="window.doing()">Recalc</button>
-        <input type="checkbox" class="autocalc" title="calculate automatically after change"/>
+        <input checked type="checkbox" class="autocalc" title="calculate automatically after change"/>
         <button onclick="window.compile()" style="margin-left: 39px">Show function</button>
         <button id="bench" onclick="window.bench()" style="margin-left: 40px">Bench 1e3</button>
     </div>
@@ -171,6 +173,77 @@ dat1
   { "name": "Curly&nbsp;Pitt3<br>91"},
   { "name": "Curly&nbsp;Pitt4<br>"}
 ]
+</textarea>
+        </div>
+
+        <div class="xmp" data-xmpkey="4">
+            Defining func
+<textarea class="tmpl">
+{{##def.someFunc = function(){
+  return "<br />text from someFunc {{=it}}"
+}#}}
+<!-- calling function -->
+{{#def.someFunc()}}
+</textarea>
+<textarea class="dat">
+a123
+</textarea>
+        </div>
+
+        <div class="xmp" data-xmpkey="5">
+            setting index value
+<textarea class="tmpl">
+<div>{{##def.index = 1#}}
+{{ if ({{#def.index == 0}}) { }}
+    <br />index is set to 1
+{{ }else{ }}<br />index is set to unknown value
+{{ }; }}
+data = {{=it}}
+</div>
+</textarea>
+<textarea class="dat">
+w11
+</textarea>
+        </div>
+
+        <div class="xmp" data-xmpkey="6">
+            if / else if / else
+<textarea class="tmpl">
+<div>
+    <!-- if -->
+    {{? !it[0].firstName }}
+        <span>First name is not set</span>
+    <!-- else if -->
+    {{?? !it[0].lastName}}
+        <span>You don't have a last name</span>
+    <!-- else if -->
+    {{?? it[0].zip}}
+        <span>Your ZIP is: {{=it[0].zip}}</span>
+    <!-- else if end -->
+    {{??}}
+    <!-- else -->
+        <span>You didn't set your zip</span>
+
+    <!-- if end -->
+    {{?}}
+</div>
+</textarea>
+<textarea class="dat">
+[{firstName:'1',lastName:'2', zip:''}]
+</textarea>
+        </div>
+
+        <div class="xmp" data-xmpkey="7">
+            evaluation {{...}}
+<textarea class="tmpl">
+        <!-- EVALUATION -->
+<!-- print array index 0, 1, 2, 3 -->
+        {{ for(var prop in it) { }}
+            <div>{{=prop}}</div>
+        {{ } }}
+</textarea>
+<textarea class="dat">
+[2,3,67,9]
 </textarea>
         </div>
     </div>

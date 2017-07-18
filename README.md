@@ -9,7 +9,7 @@ doT.js is fast, small and has no dependencies.
     compile-time evaluation
     partials support
     conditionals support
-    array iterators
+    array iterators (with filters since v.1.2)
     object iterators with filters (since v.1.1)
     encoding of HTML symbols
     control whitespace - strip or preserve
@@ -18,7 +18,9 @@ doT.js is fast, small and has no dependencies.
 
 ## Docs, live playground and samples
 
-http://olado.github.com/doT (todo: update docs with new features added in version 1.0.0)
+* http://olado.github.com/doT (todo: update docs with new features added in version 1.0.0)
+
+* Article about doT.js v.1.2.1 (clone by spmbt) with documentation in Russian: https://habrahabr.ru/post/333662/
 
 ## New in version 1.2.1 (by author spmbt)
 
