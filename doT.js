@@ -1,6 +1,6 @@
 // doT12.js
 // 2011-2014, Laura Doktorova
-// 2013-2017, modified by spmbt0 (iterHash iterator in objects with conditions) https://github.com/spmbt/doT
+// 2013-2017, modified by spmbt0 ({{@}}-iterator in objects with conditions) https://github.com/spmbt/doT
 // Licensed under the MIT license.
 
 (function(){
@@ -16,16 +16,14 @@ var doT ={version:'1.2.1'
 			define:   /\{\{##\s*([\w\.$]+)\s*(\:|=)([\s\S]+?)#\}\}/g,
 			defineParams:/^\s*([\w$]+):([\s\S]+)/, // .+:.+
 			conditional: /\{\{\?(\?)?\s*([\s\S]*?)\s*\}\}/g, //{{? .* }}
-			iterate:     /\{\{~\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*)?\}\})/g, //{{~.*:.*:.*}}
-			iterHash:    /\{\{@\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*\:?((?:[^}]|\}(?!\}))*)\s*)?\}\})/g, //{{@.*:.*:.*:.*}}
-			varname:    'it',
-			strip:      !true, //remove spaces, tabs, newlines
+			iterate:     /\{\{([~@])\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*\:?((?:[^}]|\}(?!\}))*)\s*)?\}\})/g, //{{~.*:.*:.*:.*}}
+			varname:    'it', // name of the first argument of doT.template()(varname)
+			strip:      true, //remove spaces, tabs, newlines
 			append:     true //or split of concatenation - style of function
-			,useGlobalEncode: true
-			,selfcontained: false
-			,doNotSkipEncoded: false
+			,selfcontained: false // Self-sufficient, not need global definition of _encodeHTML()
+			,doNotSkipEncoded: false //Do not show values of encoded characters of the & ...; format
 		}
-}, /* jshint ignore:start */ _globals = (function(){ return this || (0,eval)('this'); }()) /* jshint ignore:end */
+}, /* jshint ignore:start */ _globals = (function(){return this || (0,eval)('this')})() /* jshint ignore:end */
 ,dS = doT.templateSettings;
 
 if(typeof module !='undefined'&& module.exports)
@@ -35,15 +33,15 @@ else if(typeof define =='function' && define.amd)
 else
 	_globals[dS.globalName] = doT;
 
-var d2={
+var encHt = '_'+dS.globalName + doT.version.replace(/\./g,'')
+	,d2={
 	compile: function(tmpl, def){ //for express
 		return doT.template(tmpl, null, def);
 	},
 	template: function(tmpl, c, def){
 		c = c || dS;
-		var needhtmlencode
-			,sid =0
-			,indv
+		var sid =0
+			,toEncHtm
 			,str = (c.use || c.define ? resolveDefs(c, tmpl, def ||{}) : tmpl) ||''
 			,skip = /$^/;
 		str = ("var out='" + (c.strip ? str.replace(/(^|\r|\n)\t* +| +\t*(\r|\n|$)/g,' ')
@@ -54,43 +52,44 @@ var d2={
 						(code ? "'}else if("+ unescape(code) +"){out+='" : "'}else{out+='") :
 						(code ? "';if("+ unescape(code) +"){out+='" : "'}out+='");
 				})
-				.replace(c.iterate || skip, function(m, iterate, vname, iname){ // ~
+				.replace(c.iterate || skip, function(m, op, iterate, vname, iname, cond){ // ~ m, array, value, index, [expr]
 					if(!(iterate || vname || iname)) return "';} } out+='";
 					iterate = iterate || c.varname;
-					sid++; indv = iname ||'i'+ sid; iterate = unescape(iterate);
-					return "';var arr"+ sid +'='+ iterate +';if(arr'+ sid +'){var '+ (vname = vname ||'arrI'+ sid) +','
-						+indv +'=-1,l'+ sid +'=arr'+ sid +'.length-1;while('+ indv +'<l'+ sid +'){'+ vname +'=arr'+ sid
-						+'[++'+ indv +"];out+='";
-				})
-				.replace(c.iterHash || skip, function(m, iterHash, vname, iname, cond){ // @ m, hash, value, index, [value] part of expression (== condition)
-					if(!(iterHash || vname || iname)) return "';} } out+='";
-					iterHash = iterHash || c.varname;
-					sid++; indv = iname ||'i'+ sid; iterHash = unescape(iterHash);
-					return "';var arr"+ sid +'='+ iterHash +';if(arr'+ sid +')for(var '+ indv +' in arr'+ sid +'){var '
-						+(vname = vname ||'arrI'+ sid) +'=arr'+ sid +'['+ indv +'];if('+ (cond ? vname :1)
-						+unescape(cond||'') +"){out+='";
+					sid++; iname = iname ||'i'+ sid; iterate = unescape(iterate);
+					var v1 = '){var '+ (vname = vname ||'arrI'+ sid);
+					return "';var arr"+ sid +'='+ iterate +';if(arr'+ sid
+						+(op=='~'?
+							v1 +',' +iname +'=-1,l'+ sid +'=arr'+ sid +'.length-1;while('
+							+ iname +'<l'+ sid +'){'+ vname +'=arr'+ sid
+							+'[++'+ iname +"];"
+						:
+							')for(var '+ iname+' in arr'+ sid
+							+v1 +'=arr'+ sid +'['+ iname +'];if('+ (cond ? vname :1)
+							+unescape(cond||'') +"){"
+						)+"out+='";
 				})
 				.replace(c.valEncEval || skip, function(m, op, code){ // =|! expr -- interpolate or encode
-					needhtmlencode = op =='!';
+					toEncHtm = toEncHtm || op =='!';
 					return cse['('+ op] + unescape(code) + cse[')'+ op];
 				})+ "';return out;")
 			.replace(/\n/g,'\\n').replace(/\t/g,'\\t').replace(/\r/g,'\\r')
 			.replace(/(\s|;|\}|^|\{)out\+='';/g,'$1');
 		try{
-			return new Function(c.varname, str = (needhtmlencode ? doT.encHtmlStr :'')+ str );
+			return new Function(c.varname, str = (toEncHtm ? doT.encHtm(!dS.selfcontained) :'')+ str);
 		}catch(er){
 			if(typeof console !='undefined') console.log('Could not create a template function: '+ str);
 			throw er;
 		}
 	} //fn, compile template
-	,encHtmlStr:'var encodeHTML=(function(encRules, r){return function(a){return a.replace(r, function(m){return encRules[m]})} })({"&":"&#38;","<":"&#60;",">":"&#62;","\\"":"&#34;","\'":"&#39;","/":"&#47;"},'+ (dS.doNotSkipEncoded ?'/[&<>"\'\\/]/g':'/&(?!#?\\w+;)|[<>"\'/]/g);')
+	,encHtm: function(nH){return('var encodeHTML=typeof '+ encHt +'!="undefined"?'+ encHt +':'+(nH ?'function(){'
+		:'function(c){return((c||"")+"").replace('+(dS.doNotSkipEncoded ?'/[&<>"\'\\/]/g':'/&(?!#?\\+;)|[<>"\'/]/g')
+		+',function(s){return{"&":"&#38;","<":"&#60;",">":"&#62;",\'"\':"&#34;","\'":"&#39;","/":"&#47;"}[s]||s})')+'};')}
 };
 for(var i in d2) doT[i] = d2[i];
 
-var glob = (dS.useGlobalEncode ? dS.globalName +'.':'')+ 'encodeHTML('
-,startend = {
-	append: {'(=':"'+(",      '(!':"'+"+ glob,     '(':"';", ')=':")+'",      ')!':")+'",      ')':";out+='"}
-	,split: {'(=':"';out+=(", '(!':";out+="+ glob, '(':"';", ')=':");out+='", ')!':");out+='", ')':";out+='"}
+var startend = {
+	append: {'(=':"'+(",      '(!':"'+encodeHTML(",     '(':"';", ')=':")+'",      ')!':")+'",      ')':";out+='"}
+	,split: {'(=':"';out+=(", '(!':';out+=encodeHTML(', '(':"';", ')=':");out+='", ')!':");out+='", ')':";out+='"}
 }
 ,cse = dS.append ? startend.append : startend.split
 ,resolveDefs = function(c, block, def){ if(block !=null){
@@ -124,13 +123,13 @@ var glob = (dS.useGlobalEncode ? dS.globalName +'.':'')+ 'encodeHTML('
 ,unescape = function(code){
 	return code.replace(/\\('|\\)/g,'$1').replace(/[\n\t\r]/g,' ').replace(/&lt;/g,'<').replace(/&gt;/g,'>'); //Chrome <,>
 };
-if(dS.useGlobalEncode){doT.encodeHTML = new Function(doT.encHtmlStr); doT.encHtmlStr =''}
+if(!dS.selfcontained)
+	_globals[encHt] = new Function(doT.encHtm().replace(/.+?(?!:)fu/,'return fu'))();
 
 /* for Google Closure Compiler Minificator in Advanced mode
 doT['templateSettings']=doT.templateSettings;
 doT['compile']=doT.compile;
 doT['template']=doT.template;
-doT['encodeHTML']=doT.encodeHTML;
 doT['version']=doT.version;
 dS['globalName']=dS.globalName;
 dS['valEncEval']=dS.valEncEval;
@@ -140,11 +139,9 @@ dS['define']=dS.define;
 dS['defineParams']=dS.defineParams;
 dS['conditional']=dS.conditional;
 dS['iterate']=dS.iterate;
-dS['iterHash']=dS.iterHash;
 dS['varname']=dS.varname;
 dS['strip']=dS.strip;
 dS['append']=dS.append;
-dS['useGlobalEncode']=dS.useGlobalEncode;
 dS['selfcontained']=dS.selfcontained;
 dS['doNotSkipEncoded']=dS.doNotSkipEncoded;/* */
 

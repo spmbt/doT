@@ -3,7 +3,7 @@ Created in search of the fastest and concise JavaScript templating function with
 doT.js is fast, small and has no dependencies.
 
 ## Features
-    custom delimitersd
+    custom delimiters
     runtime evaluation
     runtime interpolation
     compile-time evaluation
@@ -11,7 +11,7 @@ doT.js is fast, small and has no dependencies.
     conditionals support
     array iterators
     object iterators with filters (since v.1.1)
-    encoding
+    encoding of HTML symbols
     control whitespace - strip or preserve
     streaming friendly
     use it as logic-less or with logic, it is up to you
@@ -19,11 +19,6 @@ doT.js is fast, small and has no dependencies.
 ## Docs, live playground and samples
 
 http://olado.github.com/doT (todo: update docs with new features added in version 1.0.0)
-
-#### New in version 1.2.2 (by Spmbt)
-
-* In the test page: checked autoupdate by changes of template or data;
-* fix "strip:false" mode
 
 ## New in version 1.2.1 (by author spmbt)
 
@@ -36,6 +31,10 @@ http://olado.github.com/doT (todo: update docs with new features added in versio
     * Show compiled functions;
     * benchmark with cumulative calculation of average;
     * 3 or more examples in dropdown list of examples with save of modifications in JS (no localStorage or external);
+    * checked autoupdate by changes of template or data;
+* fix "strip:false" mode
+* more short inline encodeHTML() function for {{!}} templates (with encoding of HTML symbols)
+* merging of code of array and structure
 
 ## New in version 1.1.0 (by author spmbt)
 
