@@ -34,7 +34,7 @@ http://olado.github.com/doT (todo: update docs with new features added in versio
     * checked autoupdate by changes of template or data;
 * fix "strip:false" mode
 * more short inline encodeHTML() function for {{!}} templates (with encoding of HTML symbols)
-* merging of code of array and structure
+* merging of array and structure iterators
 
 ## New in version 1.1.0 (by author spmbt)
 

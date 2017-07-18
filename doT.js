@@ -18,7 +18,7 @@ var doT ={version:'1.2.1'
 			conditional: /\{\{\?(\?)?\s*([\s\S]*?)\s*\}\}/g, //{{? .* }}
 			iterate:     /\{\{([~@])\s*(?:\}\}|(\{[\s\S]+?\}|.*?)\s*(?:\:\s*([\w$]*)\s*(?:\:\s*([\w$]*))?\s*\:?((?:[^}]|\}(?!\}))*)\s*)?\}\})/g, //{{~.*:.*:.*:.*}}
 			varname:    'it', // name of the first argument of doT.template()(varname)
-			strip:      true, //remove spaces, tabs, newlines
+			strip:      !true, //remove spaces, tabs, newlines
 			append:     true //or split of concatenation - style of function
 			,selfcontained: false // Self-sufficient, not need global definition of _encodeHTML()
 			,doNotSkipEncoded: false //Do not show values of encoded characters of the & ...; format
@@ -53,19 +53,16 @@ var encHt = '_'+dS.globalName + doT.version.replace(/\./g,'')
 						(code ? "';if("+ unescape(code) +"){out+='" : "'}out+='");
 				})
 				.replace(c.iterate || skip, function(m, op, iterate, vname, iname, cond){ // ~ m, array, value, index, [expr]
-					if(!(iterate || vname || iname)) return "';} } out+='";
-					iterate = iterate || c.varname;
-					sid++; iname = iname ||'i'+ sid; iterate = unescape(iterate);
-					var v1 = '){var '+ (vname = vname ||'arrI'+ sid);
-					return "';var arr"+ sid +'='+ iterate +';if(arr'+ sid
+					if(!(iterate || vname || iname)) return "'} } out+='";
+					sid++; iname = iname ||'i'+ sid; iterate = unescape(iterate || c.varname);
+					var v1 = 'var '+ (vname = vname ||'arrI'+ sid)
+                        ,iph='=arr'+ sid +'['+ iname +'];if('+ (cond ? unescape(cond):1) +'){';
+					return "';var arr"+ sid +'='+ iterate +';'
 						+(op=='~'?
-							v1 +',' +iname +'=-1,l'+ sid +'=arr'+ sid +'.length-1;while('
-							+ iname +'<l'+ sid +'){'+ vname +'=arr'+ sid
-							+'[++'+ iname +"];"
+							v1 +',' +iname +'=-1,l'+ sid +'=arr'+ sid
+                            +'.length-1;while('+ iname +'++<l'+ sid +'){'+vname +iph
 						:
-							')for(var '+ iname+' in arr'+ sid
-							+v1 +'=arr'+ sid +'['+ iname +'];if('+ (cond ? vname :1)
-							+unescape(cond||'') +"){"
+							'for(var '+ iname+' in arr'+ sid +'){'+ v1 +iph
 						)+"out+='";
 				})
 				.replace(c.valEncEval || skip, function(m, op, code){ // =|! expr -- interpolate or encode
