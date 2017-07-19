@@ -5,8 +5,8 @@
     <title>Testing of the doT12 template engine</title>
     <!script src="../doT.js"><!/script>
     <script src="../doTOrig111.js"></script>
-    <!script src="../doT.js"><!/script>
-    <script src="../doT.min.js"></script>
+    <script src="../doT.js"></script>
+    <!script src="../doT.min.js"><!/script>
     <style>
         html,body{height: 100%}
         .tmpl{}
@@ -268,6 +268,14 @@ w11
         leftPan.setAttribute('data-version','v.'+ doT.version);
         rightPan.setAttribute('data-version','v.'+ doTmin.version);
         $q('#bench').innerHTML ='Bench '+ benchCycles;
+        window.crashed = function(engine, er, xmpName){
+            var D = new Date()
+                ,dd = (D.getHours()>9?'':'0')+ D.getHours() +':'+ (D.getMinutes()>9?'':0)
+                + D.getMinutes() +':'+ (D.getSeconds()>9?'':0)+ D.getSeconds()
+                ,pan = engine === doT ? leftPan : rightPan;
+            console.warn((engine === doT ?'Left: ':'Right: ') + dd +' '+ er);
+            pan.innerHTML = dd +' '+ xmpName +'<div class="warn">'+ er +'</div>\n'+ pan.innerHTML;
+        };
         (window.doing = function(woConsole){
             tmpl = $tmpl.value; //template
             dat = $dat.value;
@@ -307,14 +315,6 @@ w11
                 xmpName = $q('.xmp[data-xmpkey="'+ indx +'"]', $xmps).innerText;
             }
         },!1);
-        window.crashed = function(engine, er, xmpName){
-            var D = new Date()
-                ,dd = (D.getHours()>9?'':'0')+ D.getHours() +':'+ (D.getMinutes()>9?'':0)
-                    + D.getMinutes() +':'+ (D.getSeconds()>9?'':0)+ D.getSeconds()
-                ,pan = engine === doT ? leftPan : rightPan;
-            console.warn((engine === doT ?'Left: ':'Right: ') + dd +' '+ er);
-            pan.innerHTML = dd +' '+ xmpName +'<div class="warn">'+ er +'</div>\n'+ pan.innerHTML;
-        };
         window.compile = function(){
             doing('woConsole');
             try{leftPan.innerHTML = decodeHTML((doT.template(tmpl)+'').replace(/^function anonymous\(it\n(?:\/\*``\*\/)?\) \{\n/,'it=>{'))
