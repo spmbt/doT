@@ -3,12 +3,12 @@
 // 2013-2017, modified by spmbt0 ({{@}}-iterator in objects with conditions) https://github.com/spmbt/doT
 // Licensed under the MIT license.
 
-(function(dS, _globals, doT){
+(function(dS, _globals, doT, G){
 	"use strict";
 	/* global define: false, module: false */
 	/*jshint unused:true, eqnull:true, evil:true, laxcomma:true, laxbreak:true */
 doT['templateSettings'] = dS;
-dS['globalName'] ='doT';
+G = dS['globalName'] ='doT';
 doT ={version:'1.2.1'};
 
 if(typeof module !='undefined'&& module['exports'])
@@ -16,7 +16,7 @@ if(typeof module !='undefined'&& module['exports'])
 else if(typeof define =='function' && define['amd'])
 	define(function(){return doT;});
 else
-	_globals[dS['globalName']] = doT;
+	_globals[G] = doT;
 
 doT.compile = function(tmpl, def){return doT.template(tmpl, null, def)}; //for express
 doT.template = function(tmpl, c, def){
@@ -58,7 +58,7 @@ doT.template = function(tmpl, c, def){
 		if(typeof console !='undefined') console.log('Could not create a template function: '+ str);
 		throw er}
 };
-var encHt = '_'+ dS['globalName'] + doT.version.replace(/\./g,''); //temporary global function for encode HTML symbols
+var encHt = '_'+ G + doT.version.replace(/\./g,''); //temporary global function for encode HTML symbols
 doT.encHtm = function(nH){return('var encodeHTML=typeof '+ encHt +'!="undefined"?'+ encHt +':'+(nH ?'function(){'
 	:'function(c){return((c||"")+"").replace('+(dS.doNotSkipEncoded ?'/[&<>"\'\\/]/g':'/&(?!#?\\+;)|[<>"\'/]/g')
 	+',function(s){return{"&":"&#38;","<":"&#60;",">":"&#62;",\'"\':"&#34;","\'":"&#39;","/":"&#47;"}[s]||s})')+'};')};
